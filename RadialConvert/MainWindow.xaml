@@ -1,0 +1,343 @@
+<Window x:Class="RadialConvert.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RadialConvert"
+        mc:Ignorable="d"
+        Title="RadialConvert"
+        Width="245" Height="245"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        Visibility="Hidden"
+        Opacity="0">
+
+    <Window.Resources>
+        <!-- Sombra negra nítida para textos blancos sobre cualquier fondo -->
+        <DropShadowEffect x:Key="HighContrastTextShadow"
+                          BlurRadius="4"
+                          ShadowDepth="1"
+                          Direction="270"
+                          Color="#000000"
+                          Opacity="0.7"/>
+
+        <!-- ================= TEMA "CAMI" (Pink Liquid Glass) ================= -->
+        <LinearGradientBrush x:Key="CamiSpecularBorderBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#B3FFFFFF" Offset="0.0"/>
+            <GradientStop Color="#66FFFFFF" Offset="0.48"/>
+            <GradientStop Color="#26FFFFFF" Offset="1.0"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="CamiWheelBackgroundBrush" StartPoint="0.15,0" EndPoint="0.85,1">
+            <GradientStop Color="#66FCE7F3" Offset="0.0"/>
+            <GradientStop Color="#59F9A8D4" Offset="0.5"/>
+            <GradientStop Color="#4DF472B6" Offset="1.0"/>
+        </LinearGradientBrush>
+
+        <!-- ================= TEMA "JARDI" (Dark Liquid Glass) ================= -->
+        <LinearGradientBrush x:Key="JardiSpecularBorderBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#99FFFFFF" Offset="0.0"/>
+            <GradientStop Color="#4DFFFFFF" Offset="0.5"/>
+            <GradientStop Color="#1FFFFFFF" Offset="1.0"/>
+        </LinearGradientBrush>
+
+        <RadialGradientBrush x:Key="JardiWheelBackgroundBrush" GradientOrigin="0.35,0.3" Center="0.5,0.5" RadiusX="0.55" RadiusY="0.55">
+            <GradientStop Color="#73222222" Offset="0.0"/>
+            <GradientStop Color="#66161616" Offset="0.6"/>
+            <GradientStop Color="#590D0D0D" Offset="1.0"/>
+        </RadialGradientBrush>
+
+        <!-- Estilo base para los 4 sectores de conversión (Hover controlado dinámicamente según el tema activo) -->
+        <Style x:Key="LiquidGlassSectorStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Background" Value="#401F121A"/>
+            <Setter Property="BorderBrush" Value="#40FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="AllowDrop" Value="True"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1.0" ScaleY="1.0"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Estilo para las tarjetas del Selector de Temas ("Cami" y "Jardi") -->
+        <Style x:Key="ThemeOptionCardStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="BorderThickness" Value="1.2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1.0" ScaleY="1.0"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Contenedor circular compacto de 205x205 px -->
+    <Grid x:Name="WheelRoot"
+          Width="205" Height="205"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          RenderTransformOrigin="0.5,0.5">
+
+        <Grid.Effect>
+            <DropShadowEffect x:Name="WheelDropShadow"
+                              BlurRadius="28"
+                              ShadowDepth="4"
+                              Direction="270"
+                              Color="#000000"
+                              Opacity="0.45"/>
+        </Grid.Effect>
+
+        <Grid.RenderTransform>
+            <ScaleTransform x:Name="WheelScaleTransform" ScaleX="0.8" ScaleY="0.8"/>
+        </Grid.RenderTransform>
+
+        <!-- Marco exterior Liquid Glass con bisel de luz especular -->
+        <Border x:Name="OuterGlassFrame"
+                Width="205" Height="205"
+                CornerRadius="102.5"
+                Background="{StaticResource CamiWheelBackgroundBrush}"
+                BorderBrush="{StaticResource CamiSpecularBorderBrush}"
+                BorderThickness="1.5"
+                IsHitTestVisible="False">
+            <!-- Reflejo curvo superior estilo cristal líquido iOS -->
+            <Ellipse Width="176" Height="84"
+                     VerticalAlignment="Top"
+                     Margin="0,3,0,0"
+                     IsHitTestVisible="False">
+                <Ellipse.Fill>
+                    <LinearGradientBrush StartPoint="0.3,0" EndPoint="0.7,1">
+                        <GradientStop Color="#42FFFFFF" Offset="0.0"/>
+                        <GradientStop Color="#00FFFFFF" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+        </Border>
+
+        <!-- Aro interior sutil de refracción -->
+        <Ellipse x:Name="InnerRefractionRing"
+                 Width="142" Height="142"
+                 Stroke="#30FFFFFF"
+                 StrokeThickness="0.8"
+                 StrokeDashArray="2 3"
+                 IsHitTestVisible="False"/>
+
+        <!-- ================= VISTA 1: MODO CONVERSIÓN (Los 4 Sectores) ================= -->
+        <Grid x:Name="ConversionSectorsGrid" Width="205" Height="205" Visibility="Visible">
+
+            <!-- SECTOR 1 (Arriba): DOCX ➔ PDF -->
+            <Border x:Name="SectorDocxToPdf"
+                    Tag="DOCX_TO_PDF"
+                    Style="{StaticResource LiquidGlassSectorStyle}"
+                    Width="76" Height="44"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Center"
+                    Margin="0,9,0,0"
+                    Padding="4,2"
+                    MouseEnter="Sector_MouseEnter"
+                    MouseLeave="Sector_MouseLeave"
+                    DragEnter="Sector_DragEnter"
+                    DragOver="Sector_DragOver"
+                    DragLeave="Sector_DragLeave"
+                    Drop="Sector_Drop">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock Text="📘" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,1"/>
+                    <TextBlock Text="DOCX ➔ PDF"
+                               FontFamily="Segoe UI Variable Display, Segoe UI"
+                               FontWeight="SemiBold"
+                               FontSize="9.5"
+                               Foreground="#FFFFFF"
+                               Effect="{StaticResource HighContrastTextShadow}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- SECTOR 2 (Derecha): PDF ➔ DOCX -->
+            <Border x:Name="SectorPdfToDocx"
+                    Tag="PDF_TO_DOCX"
+                    Style="{StaticResource LiquidGlassSectorStyle}"
+                    Width="66" Height="48"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Right"
+                    Margin="0,0,7,0"
+                    Padding="3,2"
+                    MouseEnter="Sector_MouseEnter"
+                    MouseLeave="Sector_MouseLeave"
+                    DragEnter="Sector_DragEnter"
+                    DragOver="Sector_DragOver"
+                    DragLeave="Sector_DragLeave"
+                    Drop="Sector_Drop">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock Text="📄" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,1"/>
+                    <TextBlock Text="PDF ➔ DOCX"
+                               FontFamily="Segoe UI Variable Display, Segoe UI"
+                               FontWeight="SemiBold"
+                               FontSize="9"
+                               Foreground="#FFFFFF"
+                               Effect="{StaticResource HighContrastTextShadow}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- SECTOR 3 (Abajo): WEBP ➔ PNG -->
+            <Border x:Name="SectorWebpToPng"
+                    Tag="WEBP_TO_PNG"
+                    Style="{StaticResource LiquidGlassSectorStyle}"
+                    Width="76" Height="44"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,9"
+                    Padding="4,2"
+                    MouseEnter="Sector_MouseEnter"
+                    MouseLeave="Sector_MouseLeave"
+                    DragEnter="Sector_DragEnter"
+                    DragOver="Sector_DragOver"
+                    DragLeave="Sector_DragLeave"
+                    Drop="Sector_Drop">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock Text="🖼️" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,1"/>
+                    <TextBlock Text="WEBP ➔ PNG"
+                               FontFamily="Segoe UI Variable Display, Segoe UI"
+                               FontWeight="SemiBold"
+                               FontSize="9.5"
+                               Foreground="#FFFFFF"
+                               Effect="{StaticResource HighContrastTextShadow}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- SECTOR 4 (Izquierda): IMG ➔ PDF -->
+            <Border x:Name="SectorImgToPdf"
+                    Tag="IMG_TO_PDF"
+                    Style="{StaticResource LiquidGlassSectorStyle}"
+                    Width="66" Height="48"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Left"
+                    Margin="7,0,0,0"
+                    Padding="3,2"
+                    MouseEnter="Sector_MouseEnter"
+                    MouseLeave="Sector_MouseLeave"
+                    DragEnter="Sector_DragEnter"
+                    DragOver="Sector_DragOver"
+                    DragLeave="Sector_DragLeave"
+                    Drop="Sector_Drop">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock Text="📷" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,1"/>
+                    <TextBlock Text="IMG ➔ PDF"
+                               FontFamily="Segoe UI Variable Display, Segoe UI"
+                               FontWeight="SemiBold"
+                               FontSize="9"
+                               Foreground="#FFFFFF"
+                               Effect="{StaticResource HighContrastTextShadow}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ================= VISTA 2: MODO SELECTOR DE TEMAS ("Cami" / "Jardi") ================= -->
+        <Grid x:Name="ThemeSelectorGrid" Width="205" Height="205" Visibility="Collapsed">
+            <!-- Opción Superior: Botón "Cami" (Rosado pastel translúcido) -->
+            <Border x:Name="BtnThemeCami"
+                    Tag="Cami"
+                    Style="{StaticResource ThemeOptionCardStyle}"
+                    Width="126" Height="48"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Center"
+                    Margin="0,16,0,0"
+                    Background="#73F472B6"
+                    BorderBrush="#99FFFFFF"
+                    MouseEnter="ThemeButton_MouseEnter"
+                    MouseLeave="ThemeButton_MouseLeave"
+                    MouseLeftButtonUp="BtnThemeCami_Click">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Ellipse Width="8" Height="8" Fill="#FFF9A8D4" Stroke="#FFFFFF" StrokeThickness="1" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Cami"
+                                   FontFamily="Segoe UI Variable Display, Segoe UI"
+                                   FontWeight="SemiBold"
+                                   FontSize="11.5"
+                                   Foreground="#FFFFFF"
+                                   Effect="{StaticResource HighContrastTextShadow}"/>
+                    </StackPanel>
+                    <TextBlock Text="Pink Liquid Glass"
+                               FontFamily="Segoe UI Variable Text, Segoe UI"
+                               FontSize="8.5"
+                               Foreground="#F5FFFFFF"
+                               Effect="{StaticResource HighContrastTextShadow}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Opción Inferior: Botón "Jardi" (Negro humo / obsidiana translúcido) -->
+            <Border x:Name="BtnThemeJardi"
+                    Tag="Jardi"
+                    Style="{StaticResource ThemeOptionCardStyle}"
+                    Width="126" Height="48"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,16"
+                    Background="#80141414"
+                    BorderBrush="#66FFFFFF"
+                    MouseEnter="ThemeButton_MouseEnter"
+                    MouseLeave="ThemeButton_MouseLeave"
+                    MouseLeftButtonUp="BtnThemeJardi_Click">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Ellipse Width="8" Height="8" Fill="#FF262626" Stroke="#FFFFFF" StrokeThickness="1" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Jardi"
+                                   FontFamily="Segoe UI Variable Display, Segoe UI"
+                                   FontWeight="SemiBold"
+                                   FontSize="11.5"
+                                   Foreground="#FFFFFF"
+                                   Effect="{StaticResource HighContrastTextShadow}"/>
+                    </StackPanel>
+                    <TextBlock Text="Dark Obsidian Glass"
+                               FontFamily="Segoe UI Variable Text, Segoe UI"
+                               FontSize="8.5"
+                               Foreground="#D9FFFFFF"
+                               Effect="{StaticResource HighContrastTextShadow}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Círculo central con alto contraste ("Arrastra aquí" en modo conversión / "Tema" en modo selector) -->
+        <Border x:Name="CenterHubBorder"
+                Width="58" Height="58"
+                CornerRadius="29"
+                Background="#4D1F121A"
+                BorderBrush="{StaticResource CamiSpecularBorderBrush}"
+                BorderThickness="1.2"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsHitTestVisible="False">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="3">
+                <TextBlock x:Name="CenterIcon"
+                           Text="✦"
+                           FontSize="10"
+                           Foreground="#FFFFFF"
+                           Effect="{StaticResource HighContrastTextShadow}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,1"/>
+                <TextBlock x:Name="CenterStatusText"
+                           Text="Arrastra aquí"
+                           FontFamily="Segoe UI Variable Display, Segoe UI"
+                           Foreground="#FFFFFF"
+                           Effect="{StaticResource HighContrastTextShadow}"
+                           FontSize="8.5"
+                           FontWeight="SemiBold"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
