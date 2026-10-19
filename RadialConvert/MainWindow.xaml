@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:RadialConvert"
         mc:Ignorable="d"
         Title="RadialConvert"
-        Width="245" Height="245"
+        Width="282" Height="282"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -46,9 +46,9 @@
         </LinearGradientBrush>
 
         <RadialGradientBrush x:Key="JardiWheelBackgroundBrush" GradientOrigin="0.35,0.3" Center="0.5,0.5" RadiusX="0.55" RadiusY="0.55">
-            <GradientStop Color="#73222222" Offset="0.0"/>
-            <GradientStop Color="#66161616" Offset="0.6"/>
-            <GradientStop Color="#590D0D0D" Offset="1.0"/>
+            <GradientStop Color="#D91B1B20" Offset="0.0"/>
+            <GradientStop Color="#D9151518" Offset="0.6"/>
+            <GradientStop Color="#D9101013" Offset="1.0"/>
         </RadialGradientBrush>
 
         <!-- Estilo base para los 4 sectores de conversión (Hover controlado dinámicamente según el tema activo) -->
@@ -81,9 +81,9 @@
         </Style>
     </Window.Resources>
 
-    <!-- Contenedor circular compacto de 205x205 px -->
+    <!-- Contenedor circular de 236x236 px (+15%) -->
     <Grid x:Name="WheelRoot"
-          Width="205" Height="205"
+          Width="236" Height="236"
           HorizontalAlignment="Center"
           VerticalAlignment="Center"
           RenderTransformOrigin="0.5,0.5">
@@ -103,14 +103,14 @@
 
         <!-- Marco exterior Liquid Glass con bisel de luz especular -->
         <Border x:Name="OuterGlassFrame"
-                Width="205" Height="205"
-                CornerRadius="102.5"
+                Width="236" Height="236"
+                CornerRadius="118"
                 Background="{StaticResource CamiWheelBackgroundBrush}"
                 BorderBrush="{StaticResource CamiSpecularBorderBrush}"
-                BorderThickness="1.5"
+                BorderThickness="1.7"
                 IsHitTestVisible="False">
             <!-- Reflejo curvo superior estilo cristal líquido iOS -->
-            <Ellipse Width="176" Height="84"
+            <Ellipse Width="202" Height="97"
                      VerticalAlignment="Top"
                      Margin="0,3,0,0"
                      IsHitTestVisible="False">
@@ -125,23 +125,23 @@
 
         <!-- Aro interior sutil de refracción -->
         <Ellipse x:Name="InnerRefractionRing"
-                 Width="142" Height="142"
+                 Width="136" Height="136"
                  Stroke="#30FFFFFF"
                  StrokeThickness="0.8"
                  StrokeDashArray="2 3"
                  IsHitTestVisible="False"/>
 
         <!-- ================= VISTA 1: MODO CONVERSIÓN (Los 4 Sectores) ================= -->
-        <Grid x:Name="ConversionSectorsGrid" Width="205" Height="205" Visibility="Visible">
+        <Grid x:Name="ConversionSectorsGrid" Width="236" Height="236" Visibility="Visible">
 
             <!-- SECTOR 1 (Arriba): DOCX ➔ PDF -->
             <Border x:Name="SectorDocxToPdf"
                     Tag="DOCX_TO_PDF"
                     Style="{StaticResource LiquidGlassSectorStyle}"
-                    Width="76" Height="44"
+                    Width="104" Height="72"
                     VerticalAlignment="Top"
                     HorizontalAlignment="Center"
-                    Margin="0,9,0,0"
+                    Margin="0,10,0,0"
                     Padding="4,2"
                     MouseEnter="Sector_MouseEnter"
                     MouseLeave="Sector_MouseLeave"
@@ -150,11 +150,11 @@
                     DragLeave="Sector_DragLeave"
                     Drop="Sector_Drop">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
-                    <TextBlock Text="📘" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,1"/>
+                    <TextBlock Text="📘" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,2" Effect="{StaticResource HighContrastTextShadow}"/>
                     <TextBlock Text="DOCX ➔ PDF"
                                FontFamily="Segoe UI Variable Display, Segoe UI"
                                FontWeight="SemiBold"
-                               FontSize="9.5"
+                               FontSize="11"
                                Foreground="#FFFFFF"
                                Effect="{StaticResource HighContrastTextShadow}"
                                HorizontalAlignment="Center"/>
@@ -165,10 +165,10 @@
             <Border x:Name="SectorPdfToDocx"
                     Tag="PDF_TO_DOCX"
                     Style="{StaticResource LiquidGlassSectorStyle}"
-                    Width="66" Height="48"
+                    Width="80" Height="68"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Right"
-                    Margin="0,0,7,0"
+                    Margin="0,0,8,0"
                     Padding="3,2"
                     MouseEnter="Sector_MouseEnter"
                     MouseLeave="Sector_MouseLeave"
@@ -177,11 +177,11 @@
                     DragLeave="Sector_DragLeave"
                     Drop="Sector_Drop">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
-                    <TextBlock Text="📄" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,1"/>
+                    <TextBlock Text="📄" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,2" Effect="{StaticResource HighContrastTextShadow}"/>
                     <TextBlock Text="PDF ➔ DOCX"
                                FontFamily="Segoe UI Variable Display, Segoe UI"
                                FontWeight="SemiBold"
-                               FontSize="9"
+                               FontSize="10.5"
                                Foreground="#FFFFFF"
                                Effect="{StaticResource HighContrastTextShadow}"
                                HorizontalAlignment="Center"/>
@@ -192,10 +192,10 @@
             <Border x:Name="SectorWebpToPng"
                     Tag="WEBP_TO_PNG"
                     Style="{StaticResource LiquidGlassSectorStyle}"
-                    Width="76" Height="44"
+                    Width="104" Height="72"
                     VerticalAlignment="Bottom"
                     HorizontalAlignment="Center"
-                    Margin="0,0,0,9"
+                    Margin="0,0,0,10"
                     Padding="4,2"
                     MouseEnter="Sector_MouseEnter"
                     MouseLeave="Sector_MouseLeave"
@@ -204,11 +204,11 @@
                     DragLeave="Sector_DragLeave"
                     Drop="Sector_Drop">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
-                    <TextBlock Text="🖼️" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,1"/>
+                    <TextBlock Text="🖼️" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,2" Effect="{StaticResource HighContrastTextShadow}"/>
                     <TextBlock Text="WEBP ➔ PNG"
                                FontFamily="Segoe UI Variable Display, Segoe UI"
                                FontWeight="SemiBold"
-                               FontSize="9.5"
+                               FontSize="11"
                                Foreground="#FFFFFF"
                                Effect="{StaticResource HighContrastTextShadow}"
                                HorizontalAlignment="Center"/>
@@ -219,10 +219,10 @@
             <Border x:Name="SectorImgToPdf"
                     Tag="IMG_TO_PDF"
                     Style="{StaticResource LiquidGlassSectorStyle}"
-                    Width="66" Height="48"
+                    Width="80" Height="68"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Left"
-                    Margin="7,0,0,0"
+                    Margin="8,0,0,0"
                     Padding="3,2"
                     MouseEnter="Sector_MouseEnter"
                     MouseLeave="Sector_MouseLeave"
@@ -231,11 +231,11 @@
                     DragLeave="Sector_DragLeave"
                     Drop="Sector_Drop">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
-                    <TextBlock Text="📷" FontSize="10" HorizontalAlignment="Center" Margin="0,0,0,1"/>
+                    <TextBlock Text="📷" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,2" Effect="{StaticResource HighContrastTextShadow}"/>
                     <TextBlock Text="IMG ➔ PDF"
                                FontFamily="Segoe UI Variable Display, Segoe UI"
                                FontWeight="SemiBold"
-                               FontSize="9"
+                               FontSize="10.5"
                                Foreground="#FFFFFF"
                                Effect="{StaticResource HighContrastTextShadow}"
                                HorizontalAlignment="Center"/>
@@ -244,15 +244,15 @@
         </Grid>
 
         <!-- ================= VISTA 2: MODO SELECTOR DE TEMAS ("Cami" / "Jardi") ================= -->
-        <Grid x:Name="ThemeSelectorGrid" Width="205" Height="205" Visibility="Collapsed">
+        <Grid x:Name="ThemeSelectorGrid" Width="236" Height="236" Visibility="Collapsed">
             <!-- Opción Superior: Botón "Cami" (Rosado pastel translúcido) -->
             <Border x:Name="BtnThemeCami"
                     Tag="Cami"
                     Style="{StaticResource ThemeOptionCardStyle}"
-                    Width="126" Height="48"
+                    Width="145" Height="55"
                     VerticalAlignment="Top"
                     HorizontalAlignment="Center"
-                    Margin="0,16,0,0"
+                    Margin="0,18,0,0"
                     Background="#73F472B6"
                     BorderBrush="#99FFFFFF"
                     MouseEnter="ThemeButton_MouseEnter"
@@ -260,17 +260,17 @@
                     MouseLeftButtonUp="BtnThemeCami_Click">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Ellipse Width="8" Height="8" Fill="#FFF9A8D4" Stroke="#FFFFFF" StrokeThickness="1" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <Ellipse Width="9" Height="9" Fill="#FFF9A8D4" Stroke="#FFFFFF" StrokeThickness="1" Margin="0,0,5,0" VerticalAlignment="Center"/>
                         <TextBlock Text="Cami"
                                    FontFamily="Segoe UI Variable Display, Segoe UI"
                                    FontWeight="SemiBold"
-                                   FontSize="11.5"
+                                   FontSize="13"
                                    Foreground="#FFFFFF"
                                    Effect="{StaticResource HighContrastTextShadow}"/>
                     </StackPanel>
                     <TextBlock Text="Pink Liquid Glass"
                                FontFamily="Segoe UI Variable Text, Segoe UI"
-                               FontSize="8.5"
+                               FontSize="10"
                                Foreground="#F5FFFFFF"
                                Effect="{StaticResource HighContrastTextShadow}"
                                HorizontalAlignment="Center"/>
@@ -281,10 +281,10 @@
             <Border x:Name="BtnThemeJardi"
                     Tag="Jardi"
                     Style="{StaticResource ThemeOptionCardStyle}"
-                    Width="126" Height="48"
+                    Width="145" Height="55"
                     VerticalAlignment="Bottom"
                     HorizontalAlignment="Center"
-                    Margin="0,0,0,16"
+                    Margin="0,0,0,18"
                     Background="#80141414"
                     BorderBrush="#66FFFFFF"
                     MouseEnter="ThemeButton_MouseEnter"
@@ -292,17 +292,17 @@
                     MouseLeftButtonUp="BtnThemeJardi_Click">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Ellipse Width="8" Height="8" Fill="#FF262626" Stroke="#FFFFFF" StrokeThickness="1" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <Ellipse Width="9" Height="9" Fill="#FF262626" Stroke="#FFFFFF" StrokeThickness="1" Margin="0,0,5,0" VerticalAlignment="Center"/>
                         <TextBlock Text="Jardi"
                                    FontFamily="Segoe UI Variable Display, Segoe UI"
                                    FontWeight="SemiBold"
-                                   FontSize="11.5"
+                                   FontSize="13"
                                    Foreground="#FFFFFF"
                                    Effect="{StaticResource HighContrastTextShadow}"/>
                     </StackPanel>
                     <TextBlock Text="Dark Obsidian Glass"
                                FontFamily="Segoe UI Variable Text, Segoe UI"
-                               FontSize="8.5"
+                               FontSize="10"
                                Foreground="#D9FFFFFF"
                                Effect="{StaticResource HighContrastTextShadow}"
                                HorizontalAlignment="Center"/>
@@ -312,18 +312,18 @@
 
         <!-- Círculo central con alto contraste ("Arrastra aquí" en modo conversión / "Tema" en modo selector) -->
         <Border x:Name="CenterHubBorder"
-                Width="58" Height="58"
-                CornerRadius="29"
+                Width="50" Height="50"
+                CornerRadius="25"
                 Background="#4D1F121A"
                 BorderBrush="{StaticResource CamiSpecularBorderBrush}"
                 BorderThickness="1.2"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 IsHitTestVisible="False">
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="3">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="1">
                 <TextBlock x:Name="CenterIcon"
                            Text="✦"
-                           FontSize="10"
+                           FontSize="11.5"
                            Foreground="#FFFFFF"
                            Effect="{StaticResource HighContrastTextShadow}"
                            HorizontalAlignment="Center"

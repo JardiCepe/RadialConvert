@@ -31,6 +31,12 @@ public partial class MainWindow : Window
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out POINT lpPoint);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT
     {
@@ -39,6 +45,11 @@ public partial class MainWindow : Window
     }
 
     #endregion
+
+    /// <summary>
+    /// Indica que un dialogo modal propio (ImageOrderWindow) esta abierto; pausa la deteccion del arrastre.
+    /// </summary>
+    public static bool IsModalOpen { get; set; } = false;
 
     private sealed class AppConfig
     {
@@ -506,8 +517,93 @@ public partial class MainWindow : Window
 
     #region Dwell Drag Trigger Logic (500 ms Sustained Drag — No Shift Required)
 
-    private void MouseMonitorTimer_Tick(object? sender, EventArgs e)
+    /// <summary>
+    /// Devuelve true solo si la ventana en primer plano pertenece al proceso "explorer" (Explorador de archivos / Escritorio).
+    /// </summary>
+    private static bool IsExplorerActive()
     {
+        try
+        {
+            IntPtr hwnd = GetForegroundWindow();
+            if (hwnd == IntPtr.Zero)
+                return false;
+
+            GetWindowThreadProcessId(hwnd, out uint processId);
+            if (processId == 0)
+                return false;
+
+            using Process process = Process.GetProcessById((int)processId);
+            return string.Equals(process.ProcessName, "explorer", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Consulta Shell.Application (COM): true solo si la ventana de Explorer en primer plano
+    /// tiene al menos un elemento seleccionado (un clic en espacio vacio devuelve false).
+    /// </summary>
+    private static bool HasSelectedFilesInExplorer()
+    {
+        object? shell = null;
+        try
+        {
+            IntPtr foreground = GetForegroundWindow();
+            if (foreground == IntPtr.Zero)
+                return false;
+
+            Type? shellType = Type.GetTypeFromProgID("Shell.Application");
+            if (shellType == null)
+                return false;
+
+            shell = Activator.CreateInstance(shellType);
+            if (shell == null)
+                return false;
+
+            dynamic windows = ((dynamic)shell).Windows();
+            foreach (dynamic window in windows)
+            {
+                try
+                {
+                    if ((long)window.HWND != foreground.ToInt64())
+                        continue;
+
+                    dynamic selected = window.Document.SelectedItems();
+                    if ((int)selected.Count > 0)
+                        return true;
+                }
+                catch
+                {
+                    // Ventana sin Document accesible (p. ej. Internet Explorer): se ignora
+                }
+            }
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            if (shell != null && Marshal.IsComObject(shell))
+            {
+                try { Marshal.FinalReleaseComObject(shell); } catch { }
+            }
+        }
+    }
+
+    private void MouseMonitorTimer_Tick(object? sender, EventArgs e)    {
+        if (IsModalOpen)
+        {
+            _dwellActivationTimer.Stop();
+            _wasLeftMouseDown = false;
+            _hasDragStarted = false;
+            return;
+        }
+
         if (_isProcessingDrop || _isApplyingThemeSelection)
             return;
 
@@ -521,6 +617,12 @@ public partial class MainWindow : Window
                 _wasLeftMouseDown = true;
                 _hasDragStarted = false;
                 GetCursorPos(out _mouseDownInitialPos);
+
+                // Solo se permite activar la rueda desde el entorno Explorer
+                if (!IsExplorerActive())
+                {
+                    _dwellActivationTimer.Stop();
+                }
             }
             else if (!_hasDragStarted && !_isWheelOpen)
             {
@@ -534,7 +636,11 @@ public partial class MainWindow : Window
                     {
                         _hasDragStarted = true;
                         _dwellActivationTimer.Stop();
-                        _dwellActivationTimer.Start();
+                        // Solo si Explorer esta activo y hay archivos seleccionados (no un recuadro de seleccion)
+                        if (!IsModalOpen && IsExplorerActive() && HasSelectedFilesInExplorer())
+                        {
+                            _dwellActivationTimer.Start();
+                        }
                     }
                 }
             }
@@ -788,10 +894,27 @@ public partial class MainWindow : Window
         bool isJardi = _currentTheme == "Jardi";
 
         string normalBgHex = isJardi ? "#66141414" : "#401F121A";
-        string hoverBgHex = isJardi ? "#80262626" : "#733B1D30";
+        string hoverBgHex = isJardi ? "#4DFFFFFF" : "#59FFFFFF";
         string normalBorderHex = isJardi ? "#33FFFFFF" : "#40FFFFFF";
 
-        double targetScale = isHovering ? 1.05 : 1.0;
+        double targetScale = isHovering ? 1.04 : 1.0;
+
+        // Resplandor escarchado translúcido
+        if (sector.Effect is not System.Windows.Media.Effects.DropShadowEffect glow || glow.IsFrozen)
+        {
+            glow = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = Colors.White,
+                ShadowDepth = 0,
+                BlurRadius = 0,
+                Opacity = 0
+            };
+            sector.Effect = glow;
+        }
+        glow.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.OpacityProperty,
+            new DoubleAnimation(isHovering ? 0.55 : 0.0, duration) { EasingFunction = ease });
+        glow.BeginAnimation(System.Windows.Media.Effects.DropShadowEffect.BlurRadiusProperty,
+            new DoubleAnimation(isHovering ? 16 : 0, duration) { EasingFunction = ease });
         System.Windows.Media.Color targetBg = ParseColor(isHovering ? hoverBgHex : normalBgHex);
         System.Windows.Media.Color targetBorder = isHovering
             ? Colors.White
@@ -897,7 +1020,10 @@ public partial class MainWindow : Window
                 if (validImages.Count >= 2)
                 {
                     HideWheelAnimated();
-                    ImageOrderWindow orderModal = new(validImages, _currentTheme);
+                    IsModalOpen = true;
+                _dwellActivationTimer.Stop();
+                ImageOrderWindow orderModal = new(validImages, _currentTheme);
+                orderModal.Closed += (_, _) => IsModalOpen = false;
                     orderModal.ShowDialog();
                     return;
                 }

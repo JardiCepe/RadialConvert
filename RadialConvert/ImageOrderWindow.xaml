@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:RadialConvert"
         mc:Ignorable="d"
         Title="Organizar páginas del PDF"
-        Width="480" Height="520"
+        Width="800" Height="470"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -86,7 +86,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="FooterBtnBorder"
-                                CornerRadius="10"
+                                CornerRadius="12"
                                 Padding="{TemplateBinding Padding}"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
@@ -108,23 +108,86 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Botón flotante circular sobre las tarjetas (✕, ◀, ▶) -->
+        <Style x:Key="CardFloatBtnStyle" TargetType="Button">
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="#8C000000"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="FloatBorder"
+                                CornerRadius="12"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#33FFFFFF"
+                                BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="FloatBorder" Property="Background" Value="#CC000000"/>
+                                <Setter TargetName="FloatBorder" Property="BorderBrush" Value="#99FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="FloatBorder" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <SolidColorBrush x:Key="MarginAccentBrush" Color="#FFEC4899"/>
+
+        <Style x:Key="MarginPillStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#D9FFFFFF"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="PillBorder"
+                                Height="28"
+                                CornerRadius="9"
+                                Padding="11,0"
+                                Margin="1"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="PillBorder" Property="Background" Value="#26FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="PillBorder" Property="Background" Value="{DynamicResource MarginAccentBrush}"/>
+                                <Setter TargetName="PillBorder" Property="BorderBrush" Value="#66FFFFFF"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <!-- Contenedor principal con margen para la sombra exterior -->
     <Grid Margin="18">
         <Border x:Name="MainGlassBorder"
-                CornerRadius="22"
-                BorderBrush="{StaticResource SpecularBorderBrush}"
-                BorderThickness="1.5"
+                CornerRadius="18"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                Background="#E61A1A1E"
                 Effect="{StaticResource ModalDropShadow}">
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0.1,0" EndPoint="0.9,1">
-                    <GradientStop Color="#CCFCE7F3" Offset="0.0"/>
-                    <GradientStop Color="#B3F472B6" Offset="1.0"/>
-                </LinearGradientBrush>
-            </Border.Background>
 
-            <Grid Margin="18,16,18,16">
+            <Grid Margin="22,18,22,18">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -160,194 +223,216 @@
                 </Grid>
 
                 <TextBlock Grid.Row="1"
-                           Text="Arrastra una tarjeta o usa las flechas ▲ / ▼ para cambiar el orden de las páginas:"
+                           Text="Arrastra las páginas o usa las flechas ◀ ▶ al pasar el ratón para cambiar el orden:"
                            FontFamily="Segoe UI Variable Text, Segoe UI"
                            FontSize="11"
-                           Foreground="#E6FFFFFF"
+                           Foreground="#CCFFFFFF"
                            Effect="{StaticResource TextReadShadow}"
                            Margin="0,6,0,10"/>
 
-                <!-- Lista de tarjetas de imágenes con Scroll suave y soporte Drag & Drop -->
+                <!-- Tira horizontal de páginas (carrusel) con Scroll suave y soporte Drag & Drop -->
                 <Border x:Name="ListContainerBorder"
                         Grid.Row="2"
                         CornerRadius="14"
                         Background="#4D141016"
-                        BorderBrush="#40FFFFFF"
+                        BorderBrush="#26FFFFFF"
                         BorderThickness="1"
-                        Padding="8">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled"
-                                  PanningMode="VerticalOnly">
-                        <ItemsControl x:Name="ImagesItemsControl">
+                        Padding="6">
+                    <ScrollViewer x:Name="ImagesScrollViewer"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Disabled"
+                                  PanningMode="HorizontalOnly"
+                                  PreviewMouseWheel="ImagesScrollViewer_PreviewMouseWheel">
+                        <ItemsControl x:Name="ImagesItemsControl" VerticalAlignment="Center" AllowDrop="True">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border x:Name="ItemCardBorder"
-                                            CornerRadius="11"
-                                            Background="#59221A20"
-                                            BorderBrush="#45FFFFFF"
-                                            BorderThickness="1"
-                                            Margin="0,0,0,7"
-                                            Padding="8,6"
-                                            AllowDrop="True"
-                                            Cursor="Hand"
-                                            Tag="{Binding}"
-                                            PreviewMouseLeftButtonDown="ItemCard_PreviewMouseLeftButtonDown"
-                                            MouseMove="ItemCard_MouseMove"
-                                            DragEnter="ItemCard_DragEnter"
-                                            DragLeave="ItemCard_DragLeave"
-                                            Drop="ItemCard_Drop">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="52"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <!-- Miniatura de la imagen -->
-                                            <Border Grid.Column="0"
-                                                    Width="44" Height="44"
-                                                    CornerRadius="7"
-                                                    Background="#40000000"
-                                                    BorderBrush="#55FFFFFF"
-                                                    BorderThickness="1"
-                                                    ClipToBounds="True"
-                                                    HorizontalAlignment="Left">
+                                    <StackPanel Width="120" Margin="8,6,8,6">
+                                        <!-- Hoja de papel vertical (aprox. A4) -->
+                                        <Border x:Name="ItemCardBorder"
+                                                Width="120" Height="160"
+                                                CornerRadius="10"
+                                                Background="#F2F2F2"
+                                                BorderBrush="#45FFFFFF"
+                                                BorderThickness="1"
+                                                AllowDrop="True"
+                                                Cursor="Hand"
+                                                Tag="{Binding}"
+                                                PreviewMouseLeftButtonDown="ItemCard_PreviewMouseLeftButtonDown"
+                                                MouseMove="ItemCard_MouseMove"
+                                                DragEnter="ItemCard_DragEnter"
+                                                DragOver="ItemCard_DragOver"
+                                                DragLeave="ItemCard_DragLeave"
+                                                Drop="ItemCard_Drop">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Direction="270" Color="#000000" Opacity="0.4"/>
+                                            </Border.Effect>
+                                            <Grid>
                                                 <Image Source="{Binding Thumbnail}"
+                                                       Width="118" Height="158"
                                                        Stretch="UniformToFill"
-                                                       RenderOptions.BitmapScalingMode="HighQuality"/>
-                                            </Border>
+                                                       RenderOptions.BitmapScalingMode="HighQuality">
+                                                    <Image.Clip>
+                                                        <RectangleGeometry Rect="0,0,118,158" RadiusX="9" RadiusY="9"/>
+                                                    </Image.Clip>
+                                                </Image>
 
-                                            <!-- Nombre corto y etiqueta de posición (Pág. 1, Pág. 2...) -->
-                                            <StackPanel Grid.Column="1"
-                                                        VerticalAlignment="Center"
-                                                        Margin="8,0,8,0">
-                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
-                                                    <Border CornerRadius="5"
-                                                            Background="#66F472B6"
-                                                            BorderBrush="#80FFFFFF"
-                                                            BorderThickness="0.8"
-                                                            Padding="6,1"
-                                                            Margin="0,0,6,0">
-                                                        <TextBlock Text="{Binding PageLabel}"
-                                                                   FontFamily="Segoe UI Variable Display, Segoe UI"
-                                                                   FontWeight="Bold"
-                                                                   FontSize="10"
-                                                                   Foreground="#FFFFFF"/>
-                                                    </Border>
-                                                    <TextBlock Text="{Binding DimensionsLabel}"
-                                                               FontFamily="Segoe UI Variable Text, Segoe UI"
-                                                               FontSize="10"
-                                                               Foreground="#CCFFFFFF"
+                                                <!-- Insignia de número de página -->
+                                                <Border HorizontalAlignment="Left" VerticalAlignment="Top"
+                                                        Margin="7,7,0,0"
+                                                        MinWidth="22" Height="20"
+                                                        CornerRadius="10"
+                                                        Background="#99000000"
+                                                        BorderBrush="#40FFFFFF"
+                                                        BorderThickness="0.8"
+                                                        Padding="7,0"
+                                                        IsHitTestVisible="False">
+                                                    <TextBlock Text="{Binding PageNumber}"
+                                                               FontFamily="Segoe UI Variable Display, Segoe UI"
+                                                               FontWeight="Bold"
+                                                               FontSize="11"
+                                                               Foreground="#FFFFFF"
+                                                               HorizontalAlignment="Center"
                                                                VerticalAlignment="Center"/>
-                                                </StackPanel>
+                                                </Border>
 
-                                                <TextBlock Text="{Binding ShortFileName}"
-                                                           ToolTip="{Binding FilePath}"
-                                                           FontFamily="Segoe UI Variable Display, Segoe UI"
-                                                           FontWeight="SemiBold"
-                                                           FontSize="12"
-                                                           Foreground="#FFFFFF"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           Effect="{StaticResource TextReadShadow}"/>
-                                            </StackPanel>
+                                                <!-- Controles visibles solo al pasar el ratón -->
+                                                <Grid x:Name="HoverLayer" Visibility="Collapsed">
+                                                    <Border Background="#33000000" CornerRadius="9" IsHitTestVisible="False"/>
+                                                    <Button Content="✕"
+                                                            Tag="{Binding}"
+                                                            ToolTip="Quitar imagen de la lista"
+                                                            Style="{StaticResource CardFloatBtnStyle}"
+                                                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                            Margin="0,6,6,0"
+                                                            Click="RemoveItemButton_Click"/>
+                                                    <Button Content="◀"
+                                                            Tag="{Binding}"
+                                                            ToolTip="Mover antes"
+                                                            Style="{StaticResource CardFloatBtnStyle}"
+                                                            HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                            Margin="5,0,0,0"
+                                                            Click="MoveUpButton_Click"/>
+                                                    <Button Content="▶"
+                                                            Tag="{Binding}"
+                                                            ToolTip="Mover después"
+                                                            Style="{StaticResource CardFloatBtnStyle}"
+                                                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                            Margin="0,0,5,0"
+                                                            Click="MoveDownButton_Click"/>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
 
-                                            <!-- Controles para subir, bajar o quitar imagen -->
-                                            <StackPanel Grid.Column="2"
-                                                        Orientation="Horizontal"
-                                                        VerticalAlignment="Center">
-                                                <Button Content="▲"
-                                                        Tag="{Binding}"
-                                                        ToolTip="Subir página"
-                                                        Style="{StaticResource MiniGlassActionBtnStyle}"
-                                                        Click="MoveUpButton_Click"/>
-                                                <Button Content="▼"
-                                                        Tag="{Binding}"
-                                                        ToolTip="Bajar página"
-                                                        Style="{StaticResource MiniGlassActionBtnStyle}"
-                                                        Click="MoveDownButton_Click"/>
-                                                <Button Content="✕"
-                                                        Tag="{Binding}"
-                                                        ToolTip="Quitar imagen de la lista"
-                                                        Style="{StaticResource MiniGlassActionBtnStyle}"
-                                                        Background="#59B91C1C"
-                                                        BorderBrush="#80FCA5A5"
-                                                        Margin="6,0,0,0"
-                                                        Click="RemoveItemButton_Click"/>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
+                                        <!-- Nombre del archivo -->
+                                        <TextBlock Text="{Binding ShortFileName}"
+                                                   ToolTip="{Binding FilePath}"
+                                                   Margin="0,8,0,0"
+                                                   FontFamily="Segoe UI Variable Text, Segoe UI"
+                                                   FontSize="11"
+                                                   Foreground="#F2FFFFFF"
+                                                   TextAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Effect="{StaticResource TextReadShadow}"/>
+                                    </StackPanel>
+                                    <DataTemplate.Triggers>
+                                        <Trigger SourceName="ItemCardBorder" Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="HoverLayer" Property="Visibility" Value="Visible"/>
+                                        </Trigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
                 </Border>
 
-                <!-- Campo de nombre del archivo de salida -->
-                <Grid Grid.Row="3" Margin="0,10,0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0"
-                               Text="Archivo PDF:"
-                               FontFamily="Segoe UI Variable Text, Segoe UI"
-                               FontWeight="SemiBold"
-                               FontSize="11.5"
-                               Foreground="#FFFFFF"
-                               Effect="{StaticResource TextReadShadow}"
-                               VerticalAlignment="Center"
-                               Margin="0,0,8,0"/>
-                    <TextBox x:Name="OutputFileNameTextBox"
-                             Grid.Column="1"
-                             Height="28"
-                             VerticalContentAlignment="Center"
-                             Padding="8,0"
-                             FontFamily="Segoe UI Variable Text, Segoe UI"
-                             FontSize="11.5"
-                             Foreground="#FFFFFF"
-                             CaretBrush="#FFFFFF"
-                             Background="#4D141016"
-                             BorderBrush="#66FFFFFF"
-                             BorderThickness="1"/>
-                </Grid>
+                <!-- Estado / atajos -->
+                <TextBlock x:Name="HintStatusText"
+                           Grid.Row="3"
+                           Text="Esc: Cancelar · Enter: Crear PDF"
+                           FontFamily="Segoe UI Variable Text, Segoe UI"
+                           FontSize="10.5"
+                           Foreground="#B3FFFFFF"
+                           Effect="{StaticResource TextReadShadow}"
+                           Margin="2,10,0,0"/>
 
-                <!-- Barra inferior: Cancelar (Esc) y Crear PDF (Enter) -->
+                <!-- Barra inferior: nombre del PDF integrado + Cancelar (fantasma) + Crear PDF (acento) -->
                 <Grid Grid.Row="4" Margin="0,10,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock x:Name="HintStatusText"
-                               Grid.Column="0"
-                               Text="Esc: Cancelar · Enter: Crear PDF"
-                               FontFamily="Segoe UI Variable Text, Segoe UI"
-                               FontSize="10.5"
-                               Foreground="#D9FFFFFF"
-                               Effect="{StaticResource TextReadShadow}"
-                               VerticalAlignment="Center"/>
+                    <Border x:Name="OutputBoxBorder"
+                            Grid.Column="0"
+                            Height="36"
+                            CornerRadius="12"
+                            Background="#4D141016"
+                            BorderBrush="#33FFFFFF"
+                            BorderThickness="1"
+                            Margin="0,0,12,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="📄" FontSize="13" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            <TextBox x:Name="OutputFileNameTextBox"
+                                     Grid.Column="1"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     VerticalContentAlignment="Center"
+                                     Padding="8,0,10,0"
+                                     FontFamily="Segoe UI Variable Text, Segoe UI"
+                                     FontSize="12"
+                                     Foreground="#FFFFFF"
+                                     CaretBrush="#FFFFFF"
+                                     SelectionBrush="#80FFFFFF"/>
+                        </Grid>
+                    </Border>
 
-                    <Button Grid.Column="1"
+                    <Border x:Name="MarginSelectorBorder"
+                            Grid.Column="1"
+                            Height="36"
+                            CornerRadius="12"
+                            Background="#4D141016"
+                            BorderBrush="#33FFFFFF"
+                            BorderThickness="1"
+                            Padding="3,0"
+                            Margin="0,0,12,0"
+                            ToolTip="Margen alrededor de cada imagen en el PDF">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <RadioButton Content="Sin borde" Tag="0" GroupName="PdfMargin" IsChecked="True" Style="{StaticResource MarginPillStyle}" Checked="MarginRadio_Checked"/>
+                            <RadioButton Content="Delgado" Tag="24" GroupName="PdfMargin" Style="{StaticResource MarginPillStyle}" Checked="MarginRadio_Checked"/>
+                            <RadioButton Content="Medio" Tag="48" GroupName="PdfMargin" Style="{StaticResource MarginPillStyle}" Checked="MarginRadio_Checked"/>
+                            <RadioButton Content="Amplio" Tag="72" GroupName="PdfMargin" Style="{StaticResource MarginPillStyle}" Checked="MarginRadio_Checked"/>
+                        </StackPanel>
+                    </Border>
+                    <Button Grid.Column="2"
                             Content="Cancelar"
                             IsCancel="True"
                             Style="{StaticResource FooterGlassButtonStyle}"
-                            Background="#401F121A"
+                            Background="Transparent"
                             BorderBrush="#66FFFFFF"
                             Margin="0,0,8,0"
                             Click="CancelButton_Click"/>
 
                     <Button x:Name="CreatePdfButton"
-                            Grid.Column="2"
+                            Grid.Column="3"
                             Content="Crear PDF"
                             IsDefault="True"
                             Style="{StaticResource FooterGlassButtonStyle}"
-                            Background="#B3DB2777"
-                            BorderBrush="#FFFFFFFF"
+                            Background="#FFDB2777"
+                            BorderBrush="#66FFFFFF"
                             Click="CreatePdfButton_Click"/>
                 </Grid>
             </Grid>
         </Border>
     </Grid>
 </Window>
-

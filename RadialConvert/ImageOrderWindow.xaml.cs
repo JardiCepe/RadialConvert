@@ -58,6 +58,7 @@ public partial class ImageOrderWindow : Window
     private System.Windows.Point _dragStartPoint;
     private ImagePageItem? _draggedItem;
     private bool _isGeneratingPdf;
+    private double _selectedMarginPoints = 0;
 
     public string? GeneratedPdfPath { get; private set; }
 
@@ -106,40 +107,33 @@ public partial class ImageOrderWindow : Window
 
         if (isJardi)
         {
-            // Tema "Jardi" (Dark Liquid Glass)
-            RadialGradientBrush jardiBrush = new()
-            {
-                GradientOrigin = new System.Windows.Point(0.35, 0.3),
-                Center = new System.Windows.Point(0.5, 0.5),
-                RadiusX = 0.65,
-                RadiusY = 0.65
-            };
-            jardiBrush.GradientStops.Add(new GradientStop(ParseColor("#D9242428"), 0.0));
-            jardiBrush.GradientStops.Add(new GradientStop(ParseColor("#CC141417"), 0.65));
-            jardiBrush.GradientStops.Add(new GradientStop(ParseColor("#BF0B0B0D"), 1.0));
-
-            MainGlassBorder.Background = jardiBrush;
-            ListContainerBorder.Background = new SolidColorBrush(ParseColor("#660A0A0C"));
-            OutputFileNameTextBox.Background = new SolidColorBrush(ParseColor("#73121215"));
-            CreatePdfButton.Background = new SolidColorBrush(ParseColor("#CC3B82F6"));
+            // Tema "Jardi" (Dark Liquid Glass ahumado)
+            MainGlassBorder.Background = new SolidColorBrush(ParseColor("#E6151518"));
+            ListContainerBorder.Background = new SolidColorBrush(ParseColor("#66060608"));
+            OutputBoxBorder.Background = new SolidColorBrush(ParseColor("#73060608"));
+            CreatePdfButton.Background = new SolidColorBrush(ParseColor("#FF3B82F6"));
+            Resources["MarginAccentBrush"] = new SolidColorBrush(ParseColor("#FF3B82F6"));
+            MarginSelectorBorder.Background = new SolidColorBrush(ParseColor("#73060608"));
         }
         else
         {
-            // Tema "Cami" (Pink Liquid Glass)
+            // Tema "Cami" (Pink Liquid Glass ahumado)
             LinearGradientBrush camiBrush = new()
             {
                 StartPoint = new System.Windows.Point(0.1, 0.0),
                 EndPoint = new System.Windows.Point(0.9, 1.0)
             };
-            camiBrush.GradientStops.Add(new GradientStop(ParseColor("#CCFCE7F3"), 0.0));
-            camiBrush.GradientStops.Add(new GradientStop(ParseColor("#BFE879F9"), 0.5));
-            camiBrush.GradientStops.Add(new GradientStop(ParseColor("#B3EC4899"), 1.0));
+            camiBrush.GradientStops.Add(new GradientStop(ParseColor("#E634202C"), 0.0));
+            camiBrush.GradientStops.Add(new GradientStop(ParseColor("#E61F131A"), 1.0));
 
             MainGlassBorder.Background = camiBrush;
-            ListContainerBorder.Background = new SolidColorBrush(ParseColor("#4D1F121A"));
-            OutputFileNameTextBox.Background = new SolidColorBrush(ParseColor("#591F121A"));
-            CreatePdfButton.Background = new SolidColorBrush(ParseColor("#CCDB2777"));
+            ListContainerBorder.Background = new SolidColorBrush(ParseColor("#59140C11"));
+            OutputBoxBorder.Background = new SolidColorBrush(ParseColor("#66140C11"));
+            CreatePdfButton.Background = new SolidColorBrush(ParseColor("#FFEC4899"));
+            Resources["MarginAccentBrush"] = new SolidColorBrush(ParseColor("#FFEC4899"));
+            MarginSelectorBorder.Background = new SolidColorBrush(ParseColor("#66140C11"));
         }
+
     }
 
     private static (ImageSource? Thumbnail, int Width, int Height) LoadThumbnailAndDimensions(string imagePath)
@@ -174,7 +168,7 @@ public partial class ImageOrderWindow : Window
                 BitmapImage bmp = new();
                 bmp.BeginInit();
                 bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.DecodePixelWidth = 96;
+                bmp.DecodePixelWidth = 240;
                 bmp.StreamSource = ms;
                 bmp.EndInit();
                 bmp.Freeze();
@@ -186,7 +180,7 @@ public partial class ImageOrderWindow : Window
                 BitmapImage bmp = new();
                 bmp.BeginInit();
                 bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.DecodePixelWidth = 96;
+                bmp.DecodePixelWidth = 240;
                 bmp.StreamSource = fs;
                 bmp.EndInit();
                 bmp.Freeze();
@@ -211,6 +205,22 @@ public partial class ImageOrderWindow : Window
     }
 
     #region Reordering Controls (Buttons ▲ / ▼, Remove ✕, and Drag & Drop)
+
+    private void MarginRadio_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is RadioButton radio &&
+            double.TryParse(radio.Tag?.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double points))
+        {
+            _selectedMarginPoints = points;
+        }
+    }
+
+    private void ImagesScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        // Convierte la rueda del raton en desplazamiento horizontal del carrusel
+        ImagesScrollViewer.ScrollToHorizontalOffset(ImagesScrollViewer.HorizontalOffset - e.Delta * 0.6);
+        e.Handled = true;
+    }
 
     private void MoveUpButton_Click(object sender, RoutedEventArgs e)
     {
@@ -274,10 +284,18 @@ public partial class ImageOrderWindow : Window
         if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
             Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
         {
-            if (sender is DependencyObject dragSource)
+            if (sender is DependencyObject dragSource && _draggedItem != null)
             {
-                DragDrop.DoDragDrop(dragSource, _draggedItem, DragDropEffects.Move);
+                ImagePageItem itemToDrag = _draggedItem;
                 _draggedItem = null;
+                try
+                {
+                    DragDrop.DoDragDrop(dragSource, new DataObject(typeof(ImagePageItem), itemToDrag), DragDropEffects.Move);
+                }
+                catch (Exception)
+                {
+                    // Excepciones OLE durante el arrastre: se ignoran para no cerrar la aplicacion
+                }
             }
         }
     }
@@ -290,6 +308,14 @@ public partial class ImageOrderWindow : Window
             cardBorder.BorderThickness = new Thickness(1.6);
             e.Effects = DragDropEffects.Move;
         }
+        e.Handled = true;
+    }
+
+    private void ItemCard_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(typeof(ImagePageItem))
+            ? DragDropEffects.Move
+            : DragDropEffects.None;
         e.Handled = true;
     }
 
@@ -393,6 +419,7 @@ public partial class ImageOrderWindow : Window
 
         string targetOutputPath = GetUniqueMergedPdfPath(_sourceDirectory, requestedFileName);
         List<string> orderedPaths = _items.Select(i => i.FilePath).ToList();
+        double marginPoints = _selectedMarginPoints;
 
         _isGeneratingPdf = true;
         CreatePdfButton.IsEnabled = false;
@@ -401,7 +428,7 @@ public partial class ImageOrderWindow : Window
 
         try
         {
-            await Task.Run(() => GenerateMergedPdf(orderedPaths, targetOutputPath));
+            await Task.Run(() => GenerateMergedPdf(orderedPaths, targetOutputPath, marginPoints));
 
             GeneratedPdfPath = targetOutputPath;
             SystemSounds.Asterisk.Play();
@@ -430,7 +457,7 @@ public partial class ImageOrderWindow : Window
     /// Crea un único documento PDF iterando las imágenes en el orden decidido por el usuario.
     /// Cada página toma las dimensiones originales exactas de su imagen correspondiente.
     /// </summary>
-    public static void GenerateMergedPdf(IReadOnlyList<string> orderedImagePaths, string outputPath)
+    public static void GenerateMergedPdf(IReadOnlyList<string> orderedImagePaths, string outputPath, double marginPoints = 0)
     {
         List<string> tempFilesToClean = new();
 
@@ -491,12 +518,15 @@ public partial class ImageOrderWindow : Window
                 }
 
                 PdfPage page = document.AddPage();
-                page.Width = XUnit.FromPoint(Math.Max(1, width));
-                page.Height = XUnit.FromPoint(Math.Max(1, height));
+                double margin = Math.Max(0, marginPoints);
+                double imageWidth = Math.Max(1, width);
+                double imageHeight = Math.Max(1, height);
+                page.Width = XUnit.FromPoint(imageWidth + (margin * 2));
+                page.Height = XUnit.FromPoint(imageHeight + (margin * 2));
 
                 using XGraphics gfx = XGraphics.FromPdfPage(page);
                 using XImage xImg = XImage.FromFile(fileForPdfSharp);
-                gfx.DrawImage(xImg, 0, 0, page.Width, page.Height);
+                gfx.DrawImage(xImg, margin, margin, imageWidth, imageHeight);
             }
 
             if (document.PageCount == 0)
