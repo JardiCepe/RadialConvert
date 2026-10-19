@@ -871,6 +871,41 @@ public partial class MainWindow : Window
         _isProcessingDrop = true;
         try
         {
+            // Caso especial para el sector IMG ➔ PDF:
+            // Filtrar solo imágenes válidas (.png, .jpg, .jpeg, .webp, .bmp).
+            // - Si hay 1 imagen: conversión directa sin diálogos extra.
+            // - Si hay 2 o más imágenes: abrir ImageOrderWindow modal con el tema activo ("Cami" o "Jardi").
+            if (sectorMode == "IMG_TO_PDF")
+            {
+                List<string> validImages = files
+                    .Where(f => Path.GetExtension(f).ToLowerInvariant() is ".png" or ".jpg" or ".jpeg" or ".webp" or ".bmp")
+                    .ToList();
+
+                if (validImages.Count == 0)
+                {
+                    CenterIcon.Text = "⚠️";
+                    CenterStatusText.Text = "Solo imágenes";
+                    await Task.Delay(700);
+                    MessageBox.Show(
+                        "El sector 'IMG ➔ PDF' solo acepta imágenes (.png, .jpg, .jpeg, .webp, .bmp).",
+                        "RadialConvert - Formato no válido para este sector",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (validImages.Count >= 2)
+                {
+                    HideWheelAnimated();
+                    ImageOrderWindow orderModal = new(validImages, _currentTheme);
+                    orderModal.ShowDialog();
+                    return;
+                }
+
+                // Exactamente 1 imagen válida: proceder con la conversión directa
+                files = validImages.ToArray();
+            }
+
             int convertedCount = 0;
             string? errorMessage = null;
             string? shortStatusError = null;
@@ -1168,45 +1203,102 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Sector 4 (Izquierdo): IMG ➔ PDF
-    /// Acepta (.png, .jpg, .jpeg, .webp, .bmp), crea un documento PdfSharp con las dimensiones de la imagen,
-    /// dibuja la imagen centrada y guarda el PDF en la misma carpeta.
+    /// Usa PdfSharp (v1.50.5147) y SixLabors.ImageSharp (v2.1.4) sin librerías de licencia comercial:
+    /// - Si es .webp: obtiene dimensiones con Image.Identify(sourcePath), exporta un PNG temporal y lo carga con XImage.FromFile.
+    /// - Si es .png, .jpg, .jpeg o .bmp: obtiene dimensiones y lo abre directamente con XImage.FromFile(sourcePath).
+    /// - Configura page.Width y page.Height al tamaño exacto de la imagen y dibuja a página completa.
     /// </summary>
     private static void ConvertImageToPdf(string sourcePath)
     {
-        string outputPath = GetSafeOutputPath(sourcePath, ".pdf");
-
-        using MemoryStream memoryStream = new();
-        int pixelWidth;
-        int pixelHeight;
-
-        using (FileStream inputStream = new(sourcePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-        using (SixLabors.ImageSharp.Image img = SixLabors.ImageSharp.Image.Load(inputStream))
+        string ext = Path.GetExtension(sourcePath).ToLowerInvariant();
+        if (ext is not (".png" or ".jpg" or ".jpeg" or ".webp" or ".bmp"))
         {
-            pixelWidth = img.Width;
-            pixelHeight = img.Height;
-            img.Save(memoryStream, new PngEncoder());
+            throw new NotSupportedException($"Formato de imagen no soportado para PDF: {ext}");
         }
 
-        memoryStream.Position = 0;
+        string outputPath = GetSafeOutputPath(sourcePath, ".pdf");
+        string? tempPngPath = null;
 
-        using PdfDocument document = new();
-        PdfPage page = document.AddPage();
+        try
+        {
+            int width;
+            int height;
+            string imageFileForPdfSharp = sourcePath;
 
-        // Dimensiones exactas de la imagen en puntos para la página del PDF
-        double pageWidthPt = Math.Max(1.0, pixelWidth);
-        double pageHeightPt = Math.Max(1.0, pixelHeight);
-        page.Width = XUnit.FromPoint(pageWidthPt);
-        page.Height = XUnit.FromPoint(pageHeightPt);
+            if (ext == ".webp")
+            {
+                // Leer dimensiones exactas con ImageSharp (Image.Identify) y exportar temporalmente a PNG
+                IImageInfo? imageInfo = SixLabors.ImageSharp.Image.Identify(sourcePath);
+                if (imageInfo != null)
+                {
+                    width = imageInfo.Width;
+                    height = imageInfo.Height;
+                }
+                else
+                {
+                    using SixLabors.ImageSharp.Image webpImg = SixLabors.ImageSharp.Image.Load(sourcePath);
+                    width = webpImg.Width;
+                    height = webpImg.Height;
+                }
 
-        using XGraphics gfx = XGraphics.FromPdfPage(page);
-        using XImage xImage = XImage.FromStream(memoryStream);
+                tempPngPath = Path.Combine(Path.GetTempPath(), $"radialconvert_{Guid.NewGuid():N}.png");
+                using (FileStream inputStream = new(sourcePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (SixLabors.ImageSharp.Image webpImage = SixLabors.ImageSharp.Image.Load(inputStream))
+                {
+                    webpImage.Save(tempPngPath, new PngEncoder());
+                }
 
-        // Dibujar la imagen centrada en la página
-        double x = (page.Width.Point - pageWidthPt) / 2.0;
-        double y = (page.Height.Point - pageHeightPt) / 2.0;
-        gfx.DrawImage(xImage, x, y, pageWidthPt, pageHeightPt);
+                imageFileForPdfSharp = tempPngPath;
+            }
+            else
+            {
+                // Para JPG/PNG/BMP estándar, abrir directamente con XImage.FromFile
+                IImageInfo? info = SixLabors.ImageSharp.Image.Identify(sourcePath);
+                if (info != null)
+                {
+                    width = info.Width;
+                    height = info.Height;
+                }
+                else
+                {
+                    using XImage probeImg = XImage.FromFile(sourcePath);
+                    width = probeImg.PixelWidth;
+                    height = probeImg.PixelHeight;
+                }
+            }
 
-        document.Save(outputPath);
+            using PdfDocument document = new();
+            PdfPage page = document.AddPage();
+            page.Width = XUnit.FromPoint(Math.Max(1, width));
+            page.Height = XUnit.FromPoint(Math.Max(1, height));
+
+            using (XGraphics gfx = XGraphics.FromPdfPage(page))
+            using (XImage img = XImage.FromFile(imageFileForPdfSharp))
+            {
+                gfx.DrawImage(img, 0, 0, page.Width, page.Height);
+            }
+
+            document.Save(outputPath);
+        }
+        catch (IOException ioEx)
+        {
+            throw new IOException(
+                $"No se pudo acceder al archivo de imagen '{Path.GetFileName(sourcePath)}' porque está en uso.",
+                ioEx);
+        }
+        catch (Exception ex) when (ex is not NotSupportedException)
+        {
+            throw new InvalidOperationException(
+                $"Error al convertir la imagen '{Path.GetFileName(sourcePath)}' a PDF: {ex.Message}",
+                ex);
+        }
+        finally
+        {
+            if (!string.IsNullOrEmpty(tempPngPath) && File.Exists(tempPngPath))
+            {
+                try { File.Delete(tempPngPath); } catch { /* Ignorar errores de limpieza temporal */ }
+            }
+        }
     }
 
     /// <summary>
